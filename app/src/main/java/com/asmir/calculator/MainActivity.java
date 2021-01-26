@@ -6,6 +6,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -15,8 +16,10 @@ public class MainActivity extends AppCompatActivity {
 
     // Variables to hold the operands and type of calculations
     private Double operand1 = null;
-    private Double operand2 = null;
     private String pendingOperation = "=";
+
+    private static final String STATE_PENDING_OPERATION = "pendingOperation";
+    private static final String STATE_OPERAND1 = "operand";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,12 +48,9 @@ public class MainActivity extends AppCompatActivity {
         Button buttonMinus = findViewById(R.id.buttonMinus);
         Button buttonPlus = findViewById(R.id.buttonPlus);
 
-        View.OnClickListener listener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Button b = (Button) v;
-                newNumber.append(b.getText().toString());
-            }
+        View.OnClickListener listener = v -> {
+            Button b = (Button) v;
+            newNumber.append(b.getText().toString());
         };
 
         button0.setOnClickListener(listener);
@@ -65,5 +65,74 @@ public class MainActivity extends AppCompatActivity {
         button9.setOnClickListener(listener);
         buttonDot.setOnClickListener(listener);
 
+        View.OnClickListener opListener = v -> {
+            Button b = (Button) v;
+            String op = b.getText().toString();
+            String value = newNumber.getText().toString();
+            try {
+                Double doubleVlaue = Double.valueOf(value);
+                performOperation(doubleVlaue, op);
+            } catch (NumberFormatException e){
+                newNumber.setText("");
+            }
+            pendingOperation = op;
+            displayOperation.setText(pendingOperation);
+        };
+        buttonEquals.setOnClickListener(opListener);
+        buttonDivide.setOnClickListener(opListener);
+        buttonMultiply.setOnClickListener(opListener);
+        buttonMinus.setOnClickListener(opListener);
+        buttonPlus.setOnClickListener(opListener);
     }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putString(STATE_PENDING_OPERATION, pendingOperation);
+        if(operand1 != null){
+            outState.putDouble(STATE_OPERAND1, operand1);
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        pendingOperation = savedInstanceState.getString(STATE_PENDING_OPERATION);
+        operand1 = savedInstanceState.getDouble(STATE_OPERAND1);
+        displayOperation.setText(pendingOperation);
+    }
+
+    private void performOperation(Double value, String operation){
+       if(null == operand1) {
+           operand1 = value;
+       } else {
+           if(pendingOperation.equals("=")) {
+               pendingOperation=operation;
+           }
+           switch (pendingOperation) {
+               case "=":
+                   operand1 = value;
+                   break;
+               case "/":
+                   if(value == 0){
+                       operand1 = 0.0;
+                   } else {
+                       operand1 /= value;
+                   }
+                   break;
+               case "*":
+                   operand1 *= value;
+                   break;
+               case "+":
+                   operand1 += value;
+                   break;
+               case "-":
+                   operand1 -= value;
+                   break;
+           }
+       }
+       result.setText(operand1.toString());
+       newNumber.setText("");
+    }
+
 }
